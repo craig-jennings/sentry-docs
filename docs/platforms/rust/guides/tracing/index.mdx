@@ -1,0 +1,73 @@
+---
+title: tracing
+description: "Learn about monitoring your Rust application with Sentry's tracing integration."
+---
+
+The Sentry SDK offers an integration for tokio's [tracing](https://github.com/tokio-rs/tracing) ecosystem that supports:
+
+- Reporting `tracing` events to Sentry events, breadcrumbs, or logs.
+- Reporting `tracing` spans to Sentry.
+- Reporting errors and panics with the correct trace correlation.
+
+## Install
+
+<OnboardingOptionButtons
+  options={["error-monitoring", "performance"]}
+/>
+
+To add Sentry with the `tracing` integration to your Rust project, add the necessary dependencies to your `Cargo.toml`:
+
+```toml {filename:Cargo.toml}
+[dependencies]
+tracing = "0.1.41"
+tracing-subscriber = "0.3.19"
+sentry = { version = "{{@inject packages.version('sentry.rust') }}", features = ["tracing"] }
+```
+
+## Configure
+
+Initialize the Sentry SDK and register the Sentry layer to start sending `tracing` events and spans to Sentry:
+
+```rust
+use tracing_subscriber::prelude::*;
+
+fn main() {
+    // Initialize Sentry
+    let _guard = sentry::init((
+        "___PUBLIC_DSN___",
+        sentry::ClientOptions {
+            release: sentry::release_name!(),
+            # ___PRODUCT_OPTION_START___ performance
+            // Capture all traces and spans. Set to a lower value in production
+            traces_sample_rate: 1.0,
+            # ___PRODUCT_OPTION_END___ performance
+            ..sentry::ClientOptions::default()
+        },
+    });
+
+    // Register the Sentry tracing layer
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .with(sentry::integrations::tracing::layer())
+        .init();
+
+    fail();
+}
+
+# ___PRODUCT_OPTION_START___ performance
+#[tracing::instrument] // Capture a span for this function call
+# ___PRODUCT_OPTION_END___ performance
+fn fail() {
+    tracing::error!("Everything is on fire!");
+}
+```
+
+## Verify
+
+<Alert>
+
+Learn more about manually capturing an error or message in our <PlatformLink to="/usage/">Usage documentation</PlatformLink>.
+
+</Alert>
+
+To view and resolve the recorded error, log into [sentry.io](https://sentry.io) and select your project. Select Issues, and then Errors & Outages in the sidebar, where you will find the newly created issue. Clicking on the issue's title will open a page where you can see detailed information and mark it as resolved.
